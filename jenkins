@@ -1,0 +1,33 @@
+pipeline{
+    agent any
+    
+    stages{
+        stage ("code checkout"){
+            steps{
+                git 'https://github.com/mohit9816/docker-project.git'
+            }
+        }
+        stage ("docker image build"){
+            steps{
+                sh 'docker image build -t mohitv62/project:v$BUILD_ID .'
+                sh 'docker image tag mohitv62/project:v$BUILD_ID mohitv62/project:latest'
+            }
+        }
+        stage ( "docker push" ){
+            steps {
+                withCredentials([usernamePassword(credentialsId: 'dockerhub', passwordVariable: 'pass', usernameVariable: 'user')]) {
+                    sh "docker login -u ${user} -p ${pass}"
+                    sh 'docker image push mohitv62/project:v$BUILD_ID'
+                    sh 'docker image push mohitv62/project:latest'
+                    sh 'docker image rmi mohitv62/project:v$BUILD_ID mohitv62/project:latest'
+                }
+            }
+        }
+        
+        stage ("run container"){
+            steps{
+                sh 'docker run -id --name project -p 3000:3000 mohitv62/project:latest'
+            }
+        }
+    }
+}
